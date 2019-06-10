@@ -13,7 +13,7 @@ serializers = UserSerializers(api)
 
 @api.route('api/users')
 class UsersResource(Resource):
-    @api.expect(serializers.create_user_dto)
+    @api.expect(serializers.create_user_dto, validate=True)
     @api.marshal_with(serializers.user_dao, code=HTTPStatus.CREATED)
     @api.response(400, 'Invalid user schema')
     @api.response(422, 'Already registered user')
