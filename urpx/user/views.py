@@ -30,6 +30,21 @@ class UsersResource(Resource):
 
         return user, HTTPStatus.CREATED
 
-    @api.marshal_list_with(serializers.create_user_dao)
+    @api.marshal_list_with(serializers.user_dao)
     def get(self):
         return User.query.all()
+
+
+@api.route('api/users/<user_id>')
+@api.param('user_id', description='User ID')
+class UserResource(Resource):
+    @api.marshal_with(serializers.user_dao)
+    @api.response(404, 'Notfound user entity')
+    def get(self, user_id):
+        user = User.get_by_id(user_id)
+        if user is None:
+            raise InvalidUsage.user_not_found()
+
+        return user
+
+
