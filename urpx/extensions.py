@@ -8,8 +8,4 @@ bcrypt = Bcrypt()
 db = SQLAlchemy()
 migrate = Migrate()
 cors = CORS()
-
-from urpx.auth.jwt import identity_loader
-
 jwt = JWTManager()
-jwt.user_identity_loader(identity_loader)

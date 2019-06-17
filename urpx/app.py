@@ -48,3 +48,5 @@ def register_errorhandlers(app, api):
 
     app.errorhandler(InvalidUsage)(errorhandler)
     api.errorhandler(InvalidUsage)(errorhandler)
+
+    jwt._set_error_handler_callbacks(api)
