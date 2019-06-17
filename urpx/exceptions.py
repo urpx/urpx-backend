@@ -8,6 +8,7 @@ def template(data, code=500):
 UNAUTHORIZED_TOKEN = template(['Unauthorized token'], code=401)
 USER_NOT_FOUND = template(['User not found'], code=404)
 USER_ALREADY_REGISTERED = template(['User already registered'], code=422)
+EXPENSE_NOT_FOUND = template(['Expense not found'], code=404)
 UNKNOWN_ERROR = template([], code=500)
 
 
@@ -36,6 +37,10 @@ class InvalidUsage(Exception):
     @classmethod
     def user_already_registered(cls):
         return cls(**USER_ALREADY_REGISTERED)
+
+    @classmethod
+    def expense_not_found(cls):
+        return cls(**EXPENSE_NOT_FOUND)
 
     @classmethod
     def unknown_error(cls):

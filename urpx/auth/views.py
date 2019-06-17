@@ -20,7 +20,7 @@ class AuthResource(Resource):
 
         user = User.query.filter_by(email=login_dto['email']).first()
         if user is not None and user.check_password(login_dto['password']):
-            token = create_access_token(identity=user, fresh=True)
+            token = create_access_token(identity=user.id, fresh=True)
             return {
                 'access_token': token
             }
