@@ -9,6 +9,7 @@ UNAUTHORIZED_TOKEN = template(['Unauthorized token'], code=401)
 USER_NOT_FOUND = template(['User not found'], code=404)
 USER_ALREADY_REGISTERED = template(['User already registered'], code=422)
 EXPENSE_NOT_FOUND = template(['Expense not found'], code=404)
+NOT_SUPPORT_PRODUCT_REASON = template(['Product reason not support'], code=400)
 UNKNOWN_ERROR = template([], code=500)
 
 
@@ -41,6 +42,10 @@ class InvalidUsage(Exception):
     @classmethod
     def expense_not_found(cls):
         return cls(**EXPENSE_NOT_FOUND)
+
+    @classmethod
+    def not_support_product_reason(cls):
+        return cls(**NOT_SUPPORT_PRODUCT_REASON)
 
     @classmethod
     def unknown_error(cls):

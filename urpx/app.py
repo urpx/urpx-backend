@@ -3,7 +3,7 @@ from flask_restplus import Api
 
 from urpx import common, modules
 from urpx.config import Config
-from urpx.extensions import bcrypt, cors, db, migrate, jwt
+from urpx.extensions import bcrypt, cors, db, migrate, jwt, cache
 from urpx.exceptions import InvalidUsage
 
 
@@ -24,9 +24,12 @@ def register_extensions(app):
     bcrypt.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
+    cache.init_app(app)
+
     with app.app_context():
         db.create_all()
         db.session.commit()
+
     migrate.init_app(app, db)
     
 
