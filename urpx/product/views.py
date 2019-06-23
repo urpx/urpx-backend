@@ -10,6 +10,8 @@ from .serializers import ProductSerializers
 from urpx.exceptions import InvalidUsage
 from urpx.extensions import db, cache
 
+import asyncio
+import aiohttp
 import os
 import json
 import requests
@@ -37,11 +39,10 @@ class ProductRecommendsResource(Resource):
     @cache.cached(timeout=60 * 60 * 24)
     def get(self):
         rank = 50
-        round_cnt = 50
 
         try:
             items = get_origin_products_by_openapi('amount')
-            for i in range(len(items)): #range(round_cnt):
+            for i in range(len(items)):
                 suffle = random.randrange(0, rank)
                 items[i], items[suffle] = items[suffle], items[i]
         except Exception as ex:
@@ -68,39 +69,33 @@ class ProductsResource(Resource):
         return items
 
 
-OPEN_API_URL = 'http://openapi.mnd.go.kr'
-OPEN_API_TYPE = 'json'
-SERVICE_NAME = 'DS_MND_PX_PARD_PRDT_INFO'
-
-
 def is_support_reason(reason):
     return True if reason in SUPPORT_REASON.keys() else False
 
 
+SERVICE_NAME = 'DS_MND_PX_PARD_PRDT_INFO'
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PRODUCT_JSON_PATH = os.path.join(BASE_DIR, 'data/products.json')
 
+
 @cache.cached(timeout=60 * 60 * 24 * 30)
 def get_origin_products_by_openapi(reason):
-    openapi_key = current_app.config['API_KEY']
-    request_url = OPEN_API_URL + '/' +  \
-                  openapi_key + '/' + \
-                  OPEN_API_TYPE + '/' + \
-                  SERVICE_NAME + '/' + \
-                  '0/' + '960'
-    
-    res = requests.get(request_url)
-    # res_json = res.json()
     with open(PRODUCT_JSON_PATH, 'r') as f:
-        res_json = json.load(f)
-    
-    items = res_json[SERVICE_NAME]['row']
-    result = []
+        product_json = json.load(f)
 
+    items = product_json[SERVICE_NAME]['row']
+    result = []
+    tasks = []
+    
     for item in items:
         if item['seltnstd'] == SUPPORT_REASON[reason]:
-            item.update(get_product_image_url(item['prdtnm']))
+            tasks.append(update_product_image_url(item['prdtnm'], item))
             result.append(item)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(asyncio.wait(tasks))
 
     return result
 
@@ -108,20 +103,25 @@ def get_origin_products_by_openapi(reason):
 ELEVEN_OPEN_API_URL = 'https://openapi.11st.co.kr/openapi/OpenApiService.tmall'
 
 
-def get_product_image_url(product_name):
-    openapi_key = current_app.config['ELEVEN_API_KEY']
-    params = {'key': openapi_key, 'apiCode': 'ProductSearch', 'keyword': product_name}
+async def update_product_image_url(product_name, item):
+    item['100'] = item['200'] = ''
 
-    res = requests.get(ELEVEN_OPEN_API_URL, params=params)
+    openapi_key = current_app.config['ELEVEN_API_KEY']
+    params = {
+        'key': openapi_key, 
+        'apiCode': 'ProductSearch', 
+        'keyword': product_name
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(ELEVEN_OPEN_API_URL, params=params) as resp:
+            text = await resp.text()
 
     xmlp = ET.XMLParser(encoding="iso-8859-5")
-    xmlroot = ET.fromstring(res.content, parser=xmlp)
+    xmlroot = ET.fromstring(text, parser=xmlp)
     
     products = xmlroot.find('Products')
     for product in products.iter('Product'):
-        return {
-            '100': product.find('ProductImage100').text,
-            '200': product.find('ProductImage200').text
-        }
-
-    return {}
+        item['100'] = product.find('ProductImage100').text
+        item['200'] = product.find('ProductImage200').text
+        break
