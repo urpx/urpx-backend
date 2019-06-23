@@ -40,7 +40,8 @@ class ExpensesResource(Resource):
     @api.marshal_list_with(serializers.expense_dao)
     def get(self):
         return Expense.query.filter_by(
-            user_id=get_jwt_identity()).all()
+            user_id=get_jwt_identity()).order_by(
+                Expense.created_at.desc()).all()
 
 
 @api.route('api/expenses/<expense_id>')
