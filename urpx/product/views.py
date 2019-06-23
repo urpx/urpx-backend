@@ -41,7 +41,7 @@ class ProductRecommendsResource(Resource):
         rank = 50
 
         try:
-            items = get_origin_products_by_openapi('amount')
+            items = get_origin_products_by_openapi('amount', 0, rank)
             for i in range(len(items)):
                 suffle = random.randrange(0, rank)
                 items[i], items[suffle] = items[suffle], items[i]
@@ -53,6 +53,7 @@ class ProductRecommendsResource(Resource):
 
 @api.route('api/products/<reason>')
 @api.param('reason', description='product ranking reason, support reason [cost, amount]')
+@api.doc(params={'offset': 'offset of pagination', 'count': 'count of pagination'})
 @api.expect(auth_parser, validate=True)
 class ProductsResource(Resource):
     @jwt_required
@@ -61,8 +62,11 @@ class ProductsResource(Resource):
         if not is_support_reason(reason):
             raise InvalidUsage.not_support_product_reason()
 
+        offset = request.args.get('offset')
+        count = request.args.get('count')
+
         try:
-            items = get_origin_products_by_openapi(reason)
+            items = get_origin_products_by_openapi(reason, int(offset), int(count))
         except Exception as ex:
             raise InternalServerError(ex)
 
@@ -78,19 +82,35 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 PRODUCT_JSON_PATH = os.path.join(BASE_DIR, 'data/products.json')
 
 
-@cache.cached(timeout=60 * 60 * 24 * 30)
-def get_origin_products_by_openapi(reason):
-    with open(PRODUCT_JSON_PATH, 'r') as f:
-        product_json = json.load(f)
+with open(PRODUCT_JSON_PATH, 'r') as f:
+    product_json = json.load(f)
 
+
+@cache.cached(timeout=60 * 60 * 24 * 30)
+def filter_products_json(reason):
     items = product_json[SERVICE_NAME]['row']
     result = []
-    tasks = []
-    
+
     for item in items:
         if item['seltnstd'] == SUPPORT_REASON[reason]:
-            tasks.append(update_product_image_url(item['prdtnm'], item))
             result.append(item)
+
+    return result
+
+# @cache.cached(timeout=60 * 60 * 24 * 30)
+def get_origin_products_by_openapi(reason, offset, count):
+    items = filter_products_json(reason)
+    result = []
+    tasks = []
+
+    for i in range(offset, offset + count):
+        if offset + i > len(items):
+            break
+
+        item = items[i]
+
+        tasks.append(update_product_image_url(item['prdtnm'], item))
+        result.append(item)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
