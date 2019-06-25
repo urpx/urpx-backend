@@ -39,7 +39,8 @@ class RequestsResource(Resource):
     @jwt_required
     @api.marshal_list_with(serializers.request_dao)
     def get(self):
-        return Request.query.all()
+        return Request.query.order_by(
+            Request.created_at.desc()).all()
 
 
 @api.route('api/request/<request_id>')
