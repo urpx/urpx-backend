@@ -43,7 +43,7 @@ py==1.8.0
 pycodestyle==2.5.0
 pycparser==2.19
 pyflakes==2.1.1
-PyJWT==1.7.1
+PyJWT==2.4.0
 pylint==2.3.1
 pylint-flask==0.6
 pylint-plugin-utils==0.5
